@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  self-host-test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build bootstrap compiler
+      run: cc -o boot compiler.s
+    - name: Compile self-hosted compiler
+      run: ./boot src/compiler.code > selfhost.s
+    - name: Build self-hosted compiler
+      run: cc -o selfhost selfhost.s
+    - name: Recompile compiler using self-hosted compiler
+      run: ./selfhost src/compiler.code > recompile.s
+    - name: Check recompiled output is identical to selfhost output
+      run: diff -u selfhost.s recompile.s
