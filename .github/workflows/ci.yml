@@ -18,8 +18,14 @@ jobs:
     - name: Compile self-hosted compiler
       run: ./boot src/compiler.code > selfhost.s
     - name: Build self-hosted compiler
-      run: cc -o selfhost selfhost.s
+      run: ./boot -a selfhost.s selfhost
+    - name: Make selfhost executable
+      run: chmod +x ./selfhost
     - name: Recompile compiler using self-hosted compiler
       run: ./selfhost src/compiler.code > recompile.s
     - name: Check recompiled output is identical to selfhost output
       run: diff -u selfhost.s recompile.s
+    - name: Rebuild compiler using self-hosed compiler
+      run: ./selfhost -a recompile.s recompile
+    - name: Check rebuilt output is identical to the selfhost binary
+      run: diff -u selfhost recompile
