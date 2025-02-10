@@ -1,10 +1,12 @@
 foreign fn fprintf(stream: *anyopaque, format: *byte) int;
 foreign fn fdopen(fd: c_int, mode: *byte) *anyopaque;
+foreign fn strcmp(str1: *byte, str2: *byte) c_int;
 
 var STDERR_FILENO: int = 2;
 
 var stderr: *anyopaque = fdopen(STDERR_FILENO, "a".ptr);
 
+// main
 fn main(argc: int, argv: **byte) int {
     var args = @ptrToSlice(argv, argc);
     if (args.len < 2) {
@@ -12,5 +14,26 @@ fn main(argc: int, argv: **byte) int {
         return 1;
     };
 
-    @compile(args[1])
+    if (strcmp(args[1], "-a".ptr) == 0) {
+        if (args.len < 4) {
+            fprintf(stderr, "Usage: ./compiler -a <asm input> <elf output> [dynamic link lib, ...]\n".ptr);
+            return 1;
+        };
+        // This is a fragile assembler + elfer
+        // * It cannot link (e.g. *.a, *.o), however, it can request the application 
+        //   loader/intepreter to load shared libraries
+        // * It is hardcoded to load to `libc.so.6`
+        // * It is hardcoded to use `/lib64/ld-linux-x86-64.so.2`
+        // * It will search the cwd for shared libs by default. Alternatively you 
+        //   can specify shared libs by full path and it will use the full path to 
+        //   find it.
+        // * It is not a full blown assembler, its is the minimal implementation 
+        //   to assemble the output of the compiler
+        // * The elfer does not handle symbol versions - I'm not sure how it 
+        //   decides... (e.g. glibc has multiple sym version for `realpath`, 
+        //   and somehow it picks the one I don't want)
+        @assemble(args[2], args[3], @ptrToSlice(&args[4], args.len - 4))
+    } else {
+        @compile(args[1])
+    }
 }
